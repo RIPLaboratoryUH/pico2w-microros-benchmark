@@ -1,0 +1,8 @@
+# Python dependencies for pico2w-microros-benchmark
+# Install with: pip install -r requirements.txt
+# Tested on Python 3.10+ / Ubuntu 24.04
+
+numpy>=1.24
+pandas>=2.0
+scipy>=1.11
+matplotlib>=3.7
