@@ -1,3 +1,34 @@
+# Generated outputs — regenerate with generate_plots.py
 outputs/
+
+# Embedded micro-ROS SDK repos — these are dependencies, not source
+SerialMircorosBestEffort/src/micro_ros_raspberrypi_pico_sdk/
+SerialMircorosReliable/src/micro_ros_raspberrypi_pico_sdk/
+WifiMicrorosBestEffort/src/PicoMicroRos/
+WifiMicrorosRelaible/src/PicoMicroRos/
+
+# Python
 *.pyc
 __pycache__/
+*.pyo
+.eggs/
+*.egg-info/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+New Text Document.txt
+
+# CMake build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+*.elf
+*.bin
+*.uf2
+*.map
+
+# VS Code
+.vscode/
