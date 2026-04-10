@@ -5,10 +5,6 @@ outputs/
 SerialMircorosReliable/
 WifiMicrorosRelaible/
 
-# Embedded micro-ROS SDK repos — these are dependencies, not source
-SerialMircorosBestEffort/src/micro_ros_raspberrypi_pico_sdk/
-WifiMicrorosBestEffort/src/PicoMicroRos/
-
 # Python
 *.pyc
 __pycache__/
