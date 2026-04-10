@@ -5,8 +5,8 @@ from machine import I2C, Pin
 from ads1x15 import ADS1115
 
 # === Wi-Fi Setup ===
-SSID = "Detroit"
-PASSWORD = "churrospeak"
+SSID = "yourssid"
+PASSWORD = "yourpw"
 
 UDP_IP = "0.0.0.0"   # Listen on all interfaces
 UDP_PORT = 5005      # Pico listens here
