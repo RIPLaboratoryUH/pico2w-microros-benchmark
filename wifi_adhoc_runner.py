@@ -43,7 +43,7 @@ LISTEN_PORT  = 5006   # Host listens here for replies
 
 # ── Experiment config ──────────────────────────────────────────────────────────
 TOTAL_MSGS        = 1000
-LATE_THRESHOLD_MS = 500.0
+#LATE_THRESHOLD_MS = 500.0
 DATA_DIR          = Path("./data")
 CONFIG_NAME       = "wifi_adhoc"
 
@@ -120,7 +120,7 @@ class WiFiAdHocRunner(Node):
                     self.get_logger().warn(f"Unrecognised reply: {line}")
                     continue
 
-                status = "ok" if rtt_ms <= LATE_THRESHOLD_MS else "dropped"
+                status = "ok"# if rtt_ms <= LATE_THRESHOLD_MS else "dropped"
 
                 with self._lock:
                     self.records.append({

@@ -19,6 +19,7 @@ adc = ADS1115(i2c, address=0x48, gain=1)
 # === Connect to Wi-Fi ===
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
+(wlan.config(pm=0xa11140)   # Disable CYW43 power save (PM_NONE) for low-latency benchmarking)
 wlan.connect(SSID, PASSWORD)
 
 print("🔌 Connecting to Wi-Fi...")
