@@ -54,8 +54,8 @@ char pub_msg_buffer[128];
 i2c_inst_t *i2c = i2c0;
 
 //Wifi Info
-char ssid[] = "yourssid";
-char pass[] = "yourpassword";
+char ssid[] = "Detroit";
+char pass[] = "churrospeak";
 
 // --- Function Prototypes ---
 void setup_transport();
@@ -188,6 +188,7 @@ int main()
     cyw43_arch_init_with_country(CYW43_COUNTRY_USA);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
     cyw43_arch_enable_sta_mode();
+    cyw43_wifi_pm(&cyw43_state, CYW43_NO_POWERSAVE_MODE);   // disable WiFi power save
     cyw43_arch_wifi_connect_timeout_ms(ssid, pass, CYW43_AUTH_WPA2_AES_PSK, 10000);
     i2c_init_ads1115();
     setup_transport();

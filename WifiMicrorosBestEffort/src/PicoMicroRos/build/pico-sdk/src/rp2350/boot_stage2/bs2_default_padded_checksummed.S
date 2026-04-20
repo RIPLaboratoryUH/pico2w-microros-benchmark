@@ -1,4 +1,4 @@
-// Padded and checksummed version of: /home/markcia/Desktop/PicoProjectv2/MicroROSOverUDPConfig/src/PicoMicroRos/build/pico-sdk/src/rp2350/boot_stage2/bs2_default.bin
+// Padded and checksummed version of: /home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pico-sdk/src/rp2350/boot_stage2/bs2_default.bin
 
 .cpu cortex-m0plus
 .thumb

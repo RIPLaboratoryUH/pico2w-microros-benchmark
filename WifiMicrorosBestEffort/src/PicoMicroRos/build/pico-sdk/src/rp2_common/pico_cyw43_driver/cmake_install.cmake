@@ -39,6 +39,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/markcia/Desktop/PicoProjectv2/MicroROSOverUDPConfig/src/PicoMicroRos/build/pico-sdk/src/rp2_common/pico_cyw43_driver/cybt_shared_bus/cmake_install.cmake")
+  include("/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pico-sdk/src/rp2_common/pico_cyw43_driver/cybt_shared_bus/cmake_install.cmake")
 endif()
 

@@ -13,13 +13,14 @@ computed across per-run statistics:
     mean ± t_{0.975, n-1} * (std / sqrt(n))
 This reports run-to-run reproducibility, not within-run message variance.
 
-Also reports:
-  - Exact payload sizes (request + reply) for ad-hoc configs, measured from
-    the actual runner format strings. For micro-ROS configs, reports
-    application-level message sizes (ROS 2 type sizes, not wire bytes).
+Files prefixed with "default_pm_" are treated as a separate logical
+configuration (e.g. "default_pm_wifi_adhoc") so they don't get mixed
+in with the new no-powersave data.
 
 Usage:
     python3 explore_stats.py --data_dir ./data
+    python3 explore_stats.py --data_dir ./data --progress      # show run counts
+    python3 explore_stats.py --data_dir ./data --payloads      # include payload table
 """
 
 import argparse
@@ -30,12 +31,17 @@ import pandas as pd
 from scipy import stats
 
 CONFIGS_ORDER = [
+    # New (no-PM) configs
     "serial_adhoc",
     "wifi_adhoc",
     "serial_microros_reliable",
     "serial_microros_besteffort",
     "wifi_microros_reliable",
     "wifi_microros_besteffort",
+    # Archived (default-PM) configs
+    "default_pm_wifi_adhoc",
+    "default_pm_wifi_microros_reliable",
+    "default_pm_wifi_microros_besteffort",
 ]
 FREQS = [1, 10, 100]
 
@@ -65,11 +71,87 @@ def fmt(mean, hw):
     return f"{mean:7.2f} ± {hw:6.2f}"
 
 
+# ── Loader ────────────────────────────────────────────────────────────────────
+
+def load_data(data_dir):
+    """
+    Load all CSVs and re-tag the config column based on filename prefix
+    so default_pm_* files are kept separate from new data.
+    """
+    csvs = sorted(data_dir.glob("*.csv"))
+    if not csvs:
+        raise SystemExit(f"No CSVs in {data_dir}")
+
+    frames = []
+    for c in csvs:
+        df = pd.read_csv(c)
+        # Override the 'config' column based on filename so we can
+        # distinguish default_pm runs from new runs even though the
+        # CSVs themselves still say config=wifi_adhoc internally.
+        if c.name.startswith("default_pm_"):
+            stem = c.name[len("default_pm_"):]
+        else:
+            stem = c.name
+        # Filename pattern: <config>_<freq>hz_run<NN>_<timestamp>.csv
+        # Strip everything from "_<freq>hz" onward to get the config.
+        config_name = stem.split("_")
+        # Find where the freq token is (e.g. "1hz", "10hz", "100hz")
+        for i, tok in enumerate(config_name):
+            if tok.endswith("hz") and tok[:-2].isdigit():
+                config_name = "_".join(config_name[:i])
+                break
+        else:
+            config_name = df["config"].iloc[0] if "config" in df.columns else "unknown"
+
+        if c.name.startswith("default_pm_"):
+            config_name = "default_pm_" + config_name
+
+        df["config"] = config_name
+        frames.append(df)
+
+    df = pd.concat(frames, ignore_index=True)
+    df["rtt_ms"] = pd.to_numeric(df["rtt_ms"], errors="coerce")
+    return df, len(csvs)
+
+
+# ── Progress tracker ──────────────────────────────────────────────────────────
+
+def print_progress(df):
+    """Show run counts per (config, freq) cell — useful during recollection."""
+    print("Run Counts per (Config, Frequency)")
+    print("=" * 80)
+    header = f"{'Configuration':<40}{'1 Hz':>10}{'10 Hz':>10}{'100 Hz':>10}"
+    print(header)
+    print("-" * len(header))
+
+    for cfg in CONFIGS_ORDER:
+        if cfg not in df["config"].unique():
+            continue
+        row = f"{cfg:<40}"
+        for freq in FREQS:
+            sub = df[(df["config"] == cfg) & (df["frequency_hz"] == freq)]
+            n_runs = sub["run"].nunique() if len(sub) else 0
+            marker = ""
+            if n_runs == 0:
+                marker = " "
+            elif n_runs < 10:
+                marker = "*"   # incomplete
+            elif n_runs == 10:
+                marker = "✓"
+            else:
+                marker = "!"   # more than expected
+            row += f"{n_runs:>9}{marker}"
+        print(row)
+    print()
+    print("  ✓ = 10 runs (complete)   * = partial   ! = more than 10")
+    print()
+
+
 # ── RTT / delivery table ──────────────────────────────────────────────────────
 
 def print_rtt_table(df):
     header = (
-        f"{'Configuration':<32}{'Freq':>6}  "
+        f"{'Configuration':<40}{'Freq':>6}  "
         f"{'Median RTT (ms)':>18}  "
         f"{'P95 RTT (ms)':>18}  "
         f"{'Max RTT (ms)':>18}  "
@@ -105,12 +187,15 @@ def print_rtt_table(df):
             max_mean, max_hw = ci95(per_run_max)
             del_mean, del_hw = ci95(per_run_delivery)
 
+            n_runs = sub["run"].nunique()
+            run_tag = f"(n={n_runs})" if n_runs != 10 else ""
+
             print(
-                f"{cfg:<32}{freq:>5}Hz  "
+                f"{cfg:<40}{freq:>5}Hz  "
                 f"{fmt(med_mean, med_hw):>18}  "
                 f"{fmt(p95_mean, p95_hw):>18}  "
                 f"{fmt(max_mean, max_hw):>18}  "
-                f"{fmt(del_mean, del_hw):>16}"
+                f"{fmt(del_mean, del_hw):>16} {run_tag}"
             )
         print()
 
@@ -127,9 +212,6 @@ def analyze_payloads():
     print("=" * 80)
     print()
 
-    # --- Ad-hoc ------------------------------------------------------------
-    # Runners use: f"Message Index: {i} Timestamp: {ts_us}"
-    # Index range: 1..1000, timestamp: 16 digits (microseconds since epoch)
     request_lengths = []
     for i in range(1, 1001):
         msg = f"Message Index: {i} Timestamp: 1775645376851015"
@@ -160,9 +242,6 @@ def analyze_payloads():
           f"~{round(len(rep_typ.encode()))} B reply")
     print()
 
-    # --- micro-ROS ---------------------------------------------------------
-    # From pico_micro_ros_example.c the firmware formats:
-    #   "voltage reading reply with timestamp: <N>, voltage: %.3f V"
     uros_reply_example = "voltage reading reply with timestamp: 1775645376851015, voltage: 0.123 V"
     uros_reply_short   = "voltage reading reply with timestamp: 1, voltage: 0.000 V"
     uros_reply_long    = "voltage reading reply with timestamp: 1775645376851015, voltage: -0.123 V"
@@ -184,7 +263,6 @@ def analyze_payloads():
           f"~{len(uros_reply_example.encode())} B reply (String content)")
     print()
 
-    # --- Summary table for paper ------------------------------------------
     print("Summary (for paper Table / Methods section)")
     print("-" * 80)
     print(f"  {'Configuration':<40}{'Request':>15}{'Reply':>15}")
@@ -202,27 +280,33 @@ def analyze_payloads():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", default="./data")
+    parser.add_argument("--progress", action="store_true",
+                        help="Show run-count progress table only (skip stats)")
+    parser.add_argument("--payloads", action="store_true",
+                        help="Include payload size analysis (skipped by default)")
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
-    csvs = sorted(data_dir.glob("*.csv"))
-    if not csvs:
-        raise SystemExit(f"No CSVs in {data_dir}")
+    df, n_files = load_data(data_dir)
 
-    df = pd.concat([pd.read_csv(c) for c in csvs], ignore_index=True)
-    df["rtt_ms"] = pd.to_numeric(df["rtt_ms"], errors="coerce")
-
-    print(f"Loaded {len(df):,} records from {len(csvs)} files")
+    print(f"Loaded {len(df):,} records from {n_files} files")
     print(f"Configs found: {sorted(df['config'].unique())}")
     print(f"Frequencies found: {sorted(df['frequency_hz'].unique())}")
     print()
 
-    print("RTT and Delivery Statistics (mean ± 95% CI across 10 runs)")
+    if args.progress:
+        print_progress(df)
+        return
+
+    print_progress(df)
+
+    print("RTT and Delivery Statistics (mean ± 95% CI across runs)")
     print("=" * 80)
     print()
     print_rtt_table(df)
 
-    analyze_payloads()
+    if args.payloads:
+        analyze_payloads()
 
 
 if __name__ == "__main__":

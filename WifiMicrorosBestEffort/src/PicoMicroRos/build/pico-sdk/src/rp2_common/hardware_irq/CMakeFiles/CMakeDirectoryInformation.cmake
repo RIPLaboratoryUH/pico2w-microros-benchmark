@@ -3,7 +3,7 @@
 
 # Relative path conversion top directories.
 set(CMAKE_RELATIVE_PATH_TOP_SOURCE "/home/markcia/pico-sdk")
-set(CMAKE_RELATIVE_PATH_TOP_BINARY "/home/markcia/Desktop/PicoProjectv2/MicroROSOverUDPConfig/src/PicoMicroRos/build")
+set(CMAKE_RELATIVE_PATH_TOP_BINARY "/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build")
 
 # Force unix paths in dependencies.
 set(CMAKE_FORCE_UNIX_PATHS 1)

@@ -46,7 +46,7 @@ from std_msgs.msg import String, UInt64
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 TOTAL_MSGS        = 1000
-LATE_THRESHOLD_MS = 500.0
+#LATE_THRESHOLD_MS = 500.0
 DATA_DIR          = Path("./data")
 CONFIG_NAME       = "wifi_microros_besteffort"
 
@@ -117,7 +117,7 @@ class WiFiMicroROSBestEffortRunner(Node):
             send_ts_us = int(parts[1].split(",")[0].strip())
             rtt_ms     = (recv_ts_us - send_ts_us) / 1000.0
 
-            status = "ok" if rtt_ms <= LATE_THRESHOLD_MS else "dropped"
+            status = "ok"# if rtt_ms <= LATE_THRESHOLD_MS else "dropped"
 
             with self._lock:
                 self.records.append({
