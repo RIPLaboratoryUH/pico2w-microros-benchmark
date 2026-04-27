@@ -3,13 +3,15 @@
 generate_plots.py — IEEE publication figures for
 "Effectiveness of micro-ROS over WiFi"
 
-Produces 7 figures:
+Produces 9 figures:
     Figures 1-4: Per-config grouped bar charts (Median RTT + P95 RTT by
                  frequency, with 95% CI error bars and delivery-rate
                  annotations).
     Figures 5-7: Cross-config horizontal grouped bar charts, one per
                  frequency (Median RTT + P95 RTT across all 4 configs,
                  log x-axis, 20 ms reference line).
+    Figure 8:    Full-width combined three-panel cross-config figure.
+    Figure 9:    Full-width combined vertical cross-config figure.
 
 Statistics:
     Each run (10 runs per cell) is the unit of replication.  For every
@@ -21,12 +23,13 @@ Configurations plotted (reliable QoS variants intentionally excluded):
     serial_adhoc, wifi_adhoc,
     serial_microros_besteffort, wifi_microros_besteffort
 
+CSV files prefixed with "default_pm_" are archived (default power-save
+enabled) runs and are EXCLUDED from all plots, which reflect the
+final no-powersave data reported in the paper.
+
 Usage:
     python3 generate_plots.py --data_dir ./data --out_dir ./outputs
-
-Note on file format:
-    The brief specifies PNG at 300 DPI.  For final IEEE submission, save
-    as PDF instead (vector, scales cleanly) by passing --ext pdf.
+    python3 generate_plots.py --ext pdf       # for IEEE final submission
 """
 
 import argparse
@@ -49,13 +52,10 @@ CONFIGS = [
     ("serial_microros_besteffort", "Serial, micro-ROS",    "serial_microros"),
     ("wifi_microros_besteffort",   "WiFi, micro-ROS",      "wifi_microros"),
 ]
-# (internal_key, display_label, output_filename_slug)
 
 FREQS = [1, 10, 100]
 FREQ_LABELS = {1: "1 Hz", 10: "10 Hz", 100: "100 Hz"}
 
-# Colour scheme: blue family for serial, orange/amber for WiFi.
-# Darker shade = Median, lighter shade = P95.
 COLORS = {
     "serial_adhoc":               {"median": "#1f3a68", "p95": "#6b8bb8"},
     "serial_microros_besteffort": {"median": "#1f3a68", "p95": "#6b8bb8"},
@@ -63,15 +63,10 @@ COLORS = {
     "wifi_microros_besteffort":   {"median": "#b35900", "p95": "#f0a060"},
 }
 
-# Y-axis caps (ms) for per-config figures
 Y_CAP_SERIAL = 130.0
 Y_CAP_WIFI   = 260.0
-
-# Reference line for cross-config figures
-REF_LINE_MS = 20.0
-
-# Single-column IEEE width
-FIG_W = 3.5
+REF_LINE_MS  = 20.0
+FIG_W        = 3.5
 
 
 # ── IEEE rcParams ─────────────────────────────────────────────────────────────
@@ -99,18 +94,30 @@ def apply_rc():
 # ── Data loading & statistics ────────────────────────────────────────────────
 
 def load_data(data_dir):
-    csvs = sorted(data_dir.glob("*.csv"))
-    if not csvs:
+    """Load all CSVs, EXCLUDING archived default_pm_* files."""
+    all_csvs = sorted(data_dir.glob("*.csv"))
+    if not all_csvs:
         raise FileNotFoundError(f"No CSVs in {data_dir}")
+
+    csvs = [c for c in all_csvs if not c.name.startswith("default_pm_")]
+    skipped = len(all_csvs) - len(csvs)
+    if not csvs:
+        raise FileNotFoundError(
+            f"All CSVs in {data_dir} are default_pm_* archives; "
+            f"no current data to plot."
+        )
+
     df = pd.concat([pd.read_csv(c) for c in csvs], ignore_index=True)
     df["rtt_ms"] = pd.to_numeric(df["rtt_ms"], errors="coerce")
     keep = {c[0] for c in CONFIGS}
     df = df[df["config"].isin(keep)].copy()
+
+    print(f"  Loaded {len(csvs)} CSV files "
+          f"(skipped {skipped} archived default_pm_* files)")
     return df
 
 
 def ci95(values):
-    """Return (mean, half_width) for a 95% Student-t CI across runs."""
     arr = np.asarray(values, dtype=float)
     arr = arr[~np.isnan(arr)]
     n = len(arr)
@@ -125,14 +132,6 @@ def ci95(values):
 
 
 def cell_stats(df, config, freq):
-    """
-    Return per-run statistics for one (config, freq) cell.
-
-    Returns dict with keys:
-        median_mean, median_hw, p95_mean, p95_hw, delivery_mean, delivery_hw
-    Each is the across-run mean and 95% CI half-width of the corresponding
-    per-run statistic.
-    """
     sub = df[(df["config"] == config) & (df["frequency_hz"] == freq)]
 
     medians, p95s, deliveries = [], [], []
@@ -159,11 +158,10 @@ def cell_stats(df, config, freq):
 # ── Figures 1-4: Per-config grouped bar charts ───────────────────────────────
 
 def _delivery_label(mean, hw):
-    """Format a delivery rate annotation (omit if essentially 100%)."""
     if np.isnan(mean):
         return None
     if mean >= 99.95:
-        return None  # brief: omit annotation when delivery is 100%
+        return None
     if np.isnan(hw) or hw == 0:
         return f"{mean:.1f}%"
     return f"{mean:.1f}% ±{hw:.1f}"
@@ -177,7 +175,6 @@ def plot_per_config(df, out_dir, ext):
         y_cap = Y_CAP_WIFI if is_wifi else Y_CAP_SERIAL
         colors = COLORS[key]
 
-        # Gather stats across the three frequencies
         med_means, med_hws = [], []
         p95_means, p95_hws = [], []
         del_means, del_hws = [], []
@@ -195,14 +192,14 @@ def plot_per_config(df, out_dir, ext):
         x = np.arange(len(FREQS))
         bar_w = 0.38
 
-        bars_med = ax.bar(
+        ax.bar(
             x - bar_w/2, med_means, bar_w,
             yerr=med_hws,
             color=colors["median"], edgecolor="black", linewidth=0.5,
             label="Median RTT",
             error_kw=dict(ecolor="black", elinewidth=0.8),
         )
-        bars_p95 = ax.bar(
+        ax.bar(
             x + bar_w/2, p95_means, bar_w,
             yerr=p95_hws,
             color=colors["p95"], edgecolor="black", linewidth=0.5,
@@ -222,8 +219,6 @@ def plot_per_config(df, out_dir, ext):
 
         ax.legend(loc="upper left", framealpha=0.9, edgecolor="gray")
 
-        # Delivery-rate annotations above the P95 bar for each frequency.
-        # Only shown when delivery is below ~100%.
         for i, f in enumerate(FREQS):
             text = _delivery_label(del_means[i], del_hws[i])
             if text is None:
@@ -239,7 +234,6 @@ def plot_per_config(df, out_dir, ext):
                 fontsize=7.5, color="#444444",
             )
 
-        # Small italic note for serial micro-ROS where CIs are < 0.1 ms.
         if key == "serial_microros_besteffort":
             ax.text(
                 0.02, 0.97, "Error bars present but < 0.1 ms",
@@ -263,14 +257,9 @@ def plot_cross_config(df, out_dir, ext):
     for fi, freq in enumerate(FREQS, start=5):
         fig, ax = plt.subplots(figsize=(FIG_W, 3.3))
 
-        # Top-to-bottom ordering per the brief: Serial ad-hoc,
-        # WiFi ad-hoc, Serial micro-ROS, WiFi micro-ROS.
-        # In matplotlib barh, larger y values render higher, so we
-        # reverse the list for y-positions.
-        order = CONFIGS  # already in the desired top-to-bottom order
+        order = CONFIGS
         n = len(order)
-        y_positions = np.arange(n)[::-1]  # top row -> largest y
-
+        y_positions = np.arange(n)[::-1]
         bar_h = 0.36
 
         med_handle = None
@@ -281,8 +270,6 @@ def plot_cross_config(df, out_dir, ext):
             colors = COLORS[key]
             s = cell_stats(df, key, freq)
 
-            # Median on top of the pair, P95 below it.
-            # In barh with increasing y = up, "top" means y + bar_h/2.
             med_bar = ax.barh(
                 y + bar_h/2, s["median_mean"], bar_h,
                 xerr=s["median_hw"],
@@ -300,8 +287,6 @@ def plot_cross_config(df, out_dir, ext):
             if med_handle is None: med_handle = med_bar
             if p95_handle is None: p95_handle = p95_bar
 
-            # Delivery rate annotation at the right end of the median bar.
-            # Only shown if < ~100%.
             text = _delivery_label(s["delivery_mean"], s["delivery_hw"])
             if text is not None and not np.isnan(s["median_mean"]):
                 x_text = (s["median_mean"] or 0.01) * 1.15
@@ -317,14 +302,11 @@ def plot_cross_config(df, out_dir, ext):
         ax.set_xlabel("RTT (ms) — log scale")
         ax.set_title(f"Cross-Configuration Comparison — {FREQ_LABELS[freq]}")
 
-        # Grid on x only for horizontal charts
         ax.xaxis.grid(True, alpha=0.3)
         ax.yaxis.grid(False)
 
-        # 20 ms reference line
         ax.axvline(REF_LINE_MS, linestyle="--", color="#666666",
                    linewidth=0.8, zorder=0)
-        # Position the label near the top of the plot area
         ymin, ymax = ax.get_ylim()
         ax.text(
             REF_LINE_MS * 1.05, ymax - 0.2,
@@ -349,19 +331,10 @@ def plot_cross_config(df, out_dir, ext):
 # ── Figure 8: Combined three-panel cross-config (full-width IEEE) ─────────────
 
 def plot_combined(df, out_dir, ext):
-    """
-    Single full-width figure with three side-by-side horizontal bar panels,
-    one per frequency. Only the leftmost panel shows y-axis config labels.
-    All three panels share a single legend at the bottom.
-    """
     apply_rc()
     mpl.rcParams["axes.grid.axis"] = "x"
 
-    fig, axes = plt.subplots(
-        1, 3,
-        figsize=(7.16, 4.0),   # IEEE full text width = 7.16 in
-        sharey=False,
-    )
+    fig, axes = plt.subplots(1, 3, figsize=(7.16, 4.0), sharey=False)
 
     order = CONFIGS
     n = len(order)
@@ -398,7 +371,6 @@ def plot_combined(df, out_dir, ext):
             if p95_handle is None:
                 p95_handle = p95_bar
 
-            # Delivery rate below each bar pair — all panels
             del_m = s["delivery_mean"]
             del_hw = s["delivery_hw"]
             if not np.isnan(del_m):
@@ -421,22 +393,16 @@ def plot_combined(df, out_dir, ext):
         ax.yaxis.grid(False)
         ax.tick_params(axis="x", labelsize=8)
 
-        # Y-axis: only leftmost panel gets config labels
         ax.set_yticks(y_positions)
         if col == 0:
-            ax.set_yticklabels(
-                [label for (_k, label, _s) in order],
-                fontsize=8,
-            )
+            ax.set_yticklabels([label for (_k, label, _s) in order], fontsize=8)
             ax.set_ylabel("Configuration", fontsize=9)
         else:
             ax.set_yticklabels([""] * n)
             ax.tick_params(axis="y", length=0)
 
-        # Keep y limits consistent across panels
         ax.set_ylim(y_positions[-1] - 0.8, y_positions[0] + 0.8)
 
-    # Single shared legend below all panels
     fig.legend(
         handles=[med_handle, p95_handle],
         labels=["Median RTT (solid)", "P95 RTT (hatched)"],
@@ -460,16 +426,9 @@ def plot_combined(df, out_dir, ext):
 # ── Figure 9: Combined three-panel cross-config, vertical bars ───────────────
 
 def plot_combined_vertical(df, out_dir, ext):
-    """
-    Full-width figure with three vertical bar panels, one per frequency.
-    X-axis: configurations (rotated labels). Y-axis: RTT on log scale.
-    Only the leftmost panel shows a y-axis label.
-    Single shared legend at the bottom.
-    """
     apply_rc()
     mpl.rcParams["axes.grid.axis"] = "y"
 
-    # Short config labels for x-axis ticks to avoid excessive rotation
     SHORT_LABELS = [
         "Serial, Ad-hoc",
         "WiFi, Ad-hoc",
@@ -477,11 +436,7 @@ def plot_combined_vertical(df, out_dir, ext):
         "WiFi, micro-ROS",
     ]
 
-    fig, axes = plt.subplots(
-        1, 3,
-        figsize=(7.16, 4.4),
-        sharey=True,           # shared log y-axis across all panels
-    )
+    fig, axes = plt.subplots(1, 3, figsize=(7.16, 4.4), sharey=True)
 
     order = CONFIGS
     n = len(order)
@@ -518,11 +473,16 @@ def plot_combined_vertical(df, out_dir, ext):
             if p95_handle is None:
                 p95_handle = p95_bar
 
-            # Delivery rate above the taller bar
+            # Delivery rate above the taller bar (mean ± CI, whole percents)
             del_m = s["delivery_mean"]
             del_hw = s["delivery_hw"]
             if not np.isnan(del_m):
-                del_text = "100%" if del_m >= 99.95 else f"{del_m:.1f}%"
+                if del_m >= 99.95:
+                    del_text = "100%"
+                elif np.isnan(del_hw) or del_hw == 0:
+                    del_text = f"{del_m:.0f}%"
+                else:
+                    del_text = f"{del_m:.0f}±{del_hw:.0f}%"
             else:
                 del_text = ""
             if del_text:
@@ -545,11 +505,9 @@ def plot_combined_vertical(df, out_dir, ext):
         ax.xaxis.grid(False)
         ax.tick_params(axis="y", labelsize=8)
 
-        # Y-axis label only on leftmost panel
         if col == 0:
             ax.set_ylabel("RTT (ms) — log scale", fontsize=9)
 
-    # Single shared legend below all panels
     fig.legend(
         handles=[med_handle, p95_handle],
         labels=["Median RTT (solid)", "P95 RTT (hatched)"],
@@ -568,7 +526,6 @@ def plot_combined_vertical(df, out_dir, ext):
     fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved {out_path.name}")
-
 
 
 def main():
@@ -604,7 +561,6 @@ def main():
     plot_combined_vertical(df, out_dir, args.ext)
 
     print(f"\n✓ All figures written to {out_dir}/ as .{args.ext}")
-
 
 
 if __name__ == "__main__":
