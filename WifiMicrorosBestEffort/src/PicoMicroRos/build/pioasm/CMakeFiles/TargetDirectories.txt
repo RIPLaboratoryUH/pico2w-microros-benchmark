@@ -1,7 +1,0 @@
-/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pioasm/CMakeFiles/pioasm.dir
-/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pioasm/CMakeFiles/edit_cache.dir
-/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pioasm/CMakeFiles/rebuild_cache.dir
-/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pioasm/CMakeFiles/list_install_components.dir
-/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pioasm/CMakeFiles/install.dir
-/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pioasm/CMakeFiles/install/local.dir
-/home/markcia/Desktop/PicoProjectv3/pico2w-microros-benchmark/WifiMicrorosBestEffort/src/PicoMicroRos/build/pioasm/CMakeFiles/install/strip.dir
