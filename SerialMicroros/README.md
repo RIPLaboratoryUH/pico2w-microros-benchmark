@@ -27,7 +27,7 @@ template.
 
 For a full step-by-step setup guide independent of this experiment, see the
 companion repository:
-**https://github.com/RIPLaboratoryUH/[guide-repo-name-tbd]**
+**https://github.com/RIPLaboratoryUH/pico2w-microros-wifi-guide**
 
 ## Pairing
 

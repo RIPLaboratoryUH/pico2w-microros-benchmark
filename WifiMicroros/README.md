@@ -37,7 +37,7 @@ template (with Wi-Fi/UDP transport added).
 For a complete step-by-step setup guide independent of this experiment —
 including agent setup, network configuration, and troubleshooting — see
 the companion repository:
-**https://github.com/RIPLaboratoryUH/[guide-repo-name-tbd]**
+**https://github.com/RIPLaboratoryUH/pico2w-microros-wifi-guide**
 
 ## Pairing
 
