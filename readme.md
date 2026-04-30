@@ -3,9 +3,8 @@
 Reproducibility repository for the IEEE conference paper:
 
 > **Effectiveness of micro-ROS over WiFi**
-> M. Ciaravino
+> M. Ciaravino & Dr. Zachary Trimble 
 > Department of Engineering, University of Hawaiʻi
-> Advisor: Dr. A. Trimble
 
 A companion setup guide for general use of micro-ROS over WiFi on the Pico 2W
 is available at
