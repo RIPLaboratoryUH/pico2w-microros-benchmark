@@ -1,10 +1,7 @@
 # pico2w-microros-benchmark
 
-Reproducibility repository for the IEEE conference paper:
+Reproducibility repository for the IEEE conference paper Performance of micro-ROS over WiFi
 
-> **Effectiveness of micro-ROS over WiFi**
-> M. Ciaravino & Dr. Zachary Trimble 
-> Department of Engineering, University of Hawaiʻi
 
 A companion setup guide for general use of micro-ROS over WiFi on the Pico 2W
 is available at
