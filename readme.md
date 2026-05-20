@@ -5,7 +5,7 @@ Reproducibility repository for the IEEE conference paper Performance of micro-RO
 
 A companion setup guide for general use of micro-ROS over WiFi on the Pico 2W
 is available at
-[`pico2w-microros-wifi-guide`](https://github.com/RIPLaboratoryUH/pico2w-microros-wifi-guide).
+[`pico2w-microros-wifi-guide`](https://anonymous.4open.science/r/pico2w-microros-wifi-guide-65B6/).
 
 ---
 
