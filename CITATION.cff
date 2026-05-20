@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the associated paper and this repository."
+title: "pico2w-microros-benchmark"
+abstract: >
+  Reproducibility repository for the IEEE conference paper
+  'Effectiveness of micro-ROS over WiFi'. Contains the data, runner scripts,
+  firmware overlays, and analysis tools used to benchmark micro-ROS
+  communication performance on the Raspberry Pi Pico 2W across serial and
+  WiFi transports at 1, 10, and 100 Hz.
+type: software
+authors:
+  - family-names: Ciaravino
+    given-names: Mark
+    affiliation: "Department of Engineering, University of Hawaiʻi"
+    email: markcia@hawaii.edu
+license: MIT
+repository-code: "https://github.com/RIPLaboratoryUH/pico2w-microros-benchmark"
+keywords:
+  - micro-ROS
+  - ROS 2
+  - Raspberry Pi Pico 2W
+  - embedded systems
+  - wireless communication
+  - latency benchmarking
+preferred-citation:
+  type: conference-paper
+  title: "Effectiveness of micro-ROS over WiFi"
+  authors:
+    - family-names: Ciaravino
+      given-names: Mark
+      affiliation: "Department of Engineering, University of Hawaiʻi"
+      email: markcia@hawaii.edu
+  year: 2026
+  notes: "Advisor: Dr. A. Trimble"
